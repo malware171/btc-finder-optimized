@@ -90,13 +90,16 @@ encontrarBitcoins(workerData.min, workerData.max).catch(err => {
 import { parentPort, workerData } from 'worker_threads';
 import secp256k1 from 'secp256k1';
 import { createHash } from 'crypto';
-import bs58check from 'bs58check'; // Importe o módulo bs58check aqui
+import bs58check from 'bs58check';
 import walletsArray from './wallets.js';
 import fs from 'fs';
 
 const walletsSet = new Set(walletsArray);
 let shouldStop = false;
 let startTime = Date.now();
+let buffer = Buffer.alloc(0); // Buffer para acumular dados em memória
+const maxBufferLength = 1024 * 1024; // Tamanho máximo do buffer antes de escrever no disco
+const filePath = 'keys.txt';
 
 parentPort.on('message', (message) => {
     if (message === 'stop') {
@@ -117,36 +120,27 @@ async function encontrarBitcoins(min, max) {
         const publicKey = generatePublic(pkey);
 
         if (walletsSet.has(publicKey)) {
-            const filePath = 'keys.txt';
             const lineToAppend = `Private key: ${pkey}, WIF: ${generateWIF(pkey)}\n`;
+            buffer = Buffer.concat([buffer, Buffer.from(lineToAppend)]);
 
-            try {
-                // Verifica se o arquivo existe antes de tentar escrever
-                if (!fs.existsSync(filePath)) {
-                    fs.writeFileSync(filePath, ''); // Cria o arquivo se não existir
-                }
-
-                // Escreve no arquivo de forma assíncrona
-                fs.appendFile(filePath, lineToAppend, (err) => {
-                    if (err) {
-                        throw err;
-                    }
-                    console.log(`Chave encontrada! Private key: ${pkey}, WIF: ${generateWIF(pkey)}`);
-                    parentPort.postMessage('found');
-                    throw 'ACHEI!!!! 🎉🎉🎉🎉🎉'; // Lança uma exceção para parar o worker
-                });
-            } catch (err) {
-                console.error('Erro ao escrever chave em arquivo:', err);
+            if (buffer.length >= maxBufferLength) {
+                await writeFileAsync(); // Escreve o buffer no disco quando atinge o tamanho máximo
             }
+
+            console.log(`Chave encontrada! Private key: ${pkey}, WIF: ${generateWIF(pkey)}`);
+            parentPort.postMessage('found');
+            throw 'ACHEI!!!! 🎉🎉🎉🎉🎉'; // Lança uma exceção para parar o worker
         }
 
         if (keysChecked % 1000 === 0) {
             console.log(`Chaves verificadas: ${keysChecked}, última chave: ${pkey}`);
-            fs.writeFileSync('Ultima_chave.txt', `Ultima chave tentada: ${pkey}`, 'utf8');
+            await writeFileAsync('Ultima_chave.txt', `Ultima chave tentada: ${pkey}`);
         }
 
         await new Promise(resolve => setImmediate(resolve));
     }
+
+    await writeFileAsync(); // Escreve qualquer conteúdo restante no buffer no disco
 
     parentPort.postMessage('done');
     console.log('Worker finalizado.');
@@ -170,9 +164,21 @@ function generateWIF(privateKey) {
     return bs58check.encode(extendedKey);
 }
 
+async function writeFileAsync(fileName = filePath, data) {
+    return new Promise((resolve, reject) => {
+        fs.writeFile(fileName, data || buffer, { flag: 'a' }, (err) => {
+            if (err) {
+                reject(err);
+            } else {
+                buffer = Buffer.alloc(0); // Limpa o buffer após escrever no disco
+                resolve();
+            }
+        });
+    });
+}
+
 encontrarBitcoins(workerData.min, workerData.max).catch(err => {
     if (err !== 'ACHEI!!!! 🎉🎉🎉🎉🎉') {
         console.error('Erro inesperado:', err);
     }
 });
-
