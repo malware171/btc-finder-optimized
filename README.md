@@ -21,3 +21,9 @@ nvm use 16
 npm install secp256k1
 
 npm install bs58check
+
+sudo apt install screen
+
+screen -S nome-da-sessao
+
+node main.js
