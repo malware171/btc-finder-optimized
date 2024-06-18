@@ -31,14 +31,23 @@ async function encontrarBitcoins(min, max) {
             const lineToAppend = `Private key: ${pkey}, WIF: ${generateWIF(pkey)}\n`;
 
             try {
-                fs.appendFileSync(filePath, lineToAppend);
-                parentPort.postMessage('found');
-                console.log(`Chave encontrada! Private key: ${pkey}, WIF: ${generateWIF(pkey)}`);
+                // Verifica se o arquivo existe antes de tentar escrever
+                if (!fs.existsSync(filePath)) {
+                    fs.writeFileSync(filePath, ''); // Cria o arquivo se não existir
+                }
+
+                // Escreve no arquivo de forma assíncrona
+                fs.appendFile(filePath, lineToAppend, (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                    console.log(`Chave encontrada! Private key: ${pkey}, WIF: ${generateWIF(pkey)}`);
+                    parentPort.postMessage('found');
+                    throw 'ACHEI!!!! 🎉🎉🎉🎉🎉'; // Lança uma exceção para parar o worker
+                });
             } catch (err) {
                 console.error('Erro ao escrever chave em arquivo:', err);
             }
-
-            throw 'ACHEI!!!! 🎉🎉🎉🎉🎉';
         }
 
         if (keysChecked % 1000 === 0) {
@@ -73,69 +82,3 @@ encontrarBitcoins(workerData.min, workerData.max).catch(err => {
         console.error('Erro inesperado:', err);
     }
 });
-
-
-/'//////////////////////// ATUALIZACAO 02 /////////////
-
-
-import { parentPort, workerData } from 'worker_threads';
-import CoinKey from 'coinkey';
-import walletsArray from './wallets.js';
-import chalk from 'chalk';
-
-const walletsSet = new Set(walletsArray);
-const zeroes = Array.from({ length: 65 }, (_, i) => '0'.repeat(64 - i));
-
-let { min, max } = workerData;
-min = BigInt(min);
-max = BigInt(max);
-
-const startTime = Date.now();
-
-async function encontrarBitcoins(min, max) {
-    console.log('Worker started: ', min.toString(16), max.toString(16));
-
-    let key = min;
-
-    while (key <= max && !shouldStop) {
-        key++;
-        let pkey = key.toString(16);
-        pkey = `${zeroes[pkey.length]}${pkey}`;
-        let publicKey = generatePublic(pkey);
-        
-        if (walletsSet.has(publicKey)) {
-            const endTime = Date.now();
-            console.log('Private key:', chalk.green(pkey));
-            console.log('WIF:', chalk.green(generateWIF(pkey)));
-            console.log(`Worker found key in ${(endTime - startTime) / 1000} segundos.`);
-            parentPort.postMessage('found');
-            return;
-        }
-
-        await new Promise(resolve => setImmediate(resolve));
-    }
-
-    const endTime = Date.now();
-    console.log(`Worker finished: ${min.toString(16)} - ${max.toString(16)} in ${(endTime - startTime) / 1000} segundos.`);
-    parentPort.close();
-}
-
-function generatePublic(privateKey) {
-    let _key = new CoinKey(Buffer.from(privateKey, 'hex'));
-    _key.compressed = true;
-    return _key.publicAddress;
-}
-
-function generateWIF(privateKey) {
-    let _key = new CoinKey(Buffer.from(privateKey, 'hex'));
-    return _key.privateWif;
-}
-
-let shouldStop = false;
-parentPort.on('message', (message) => {
-    if (message === 'stop') {
-        shouldStop = true;
-    }
-});
-
-encontrarBitcoins(min, max);
