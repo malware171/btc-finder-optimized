@@ -5,8 +5,8 @@
 ### Passo 1: Clonar o Repositório
 
 ```
-git clone https://github.com/seu-usuario/seu-repositorio.git
-cd seu-repositorio
+git clone https://github.com/malware171/otimized.git
+cd otimized
 ```
 ### Passo 2: Instalar Dependências
 - Dentro da pasta do btc-find instalar todas as dependencias
