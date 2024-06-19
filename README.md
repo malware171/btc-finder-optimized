@@ -9,6 +9,10 @@ git clone https://github.com/malware171/btc-finder-optimized.git
 cd otimized
 ```
 ### Passo 2: Instalar Dependências
+
+```
+sudo apt update && sudo apt upgrade 
+```
 - Dentro da pasta do btc-find instalar todas as dependencias
 ```
 npm install
