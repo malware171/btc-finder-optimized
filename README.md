@@ -41,6 +41,7 @@ nvm use 16
 ```
 npm install secp256k1
 npm install bs58check
+npm install chalk
 ```
 
 ## Rodar Aplicacao nos Workers em Background 
