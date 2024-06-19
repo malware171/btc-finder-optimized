@@ -6,7 +6,19 @@ const HOST = '0.0.0.0'; // Todas as interfaces de rede
 const PORT = 3000;
 
 // Arquivo para salvar chaves encontradas
-const filePath = 'found_keys.txt';
+const filePath = 'keys.txt';
+
+// Objeto para armazenar as métricas dos workers
+const workerMetrics = {};
+
+// Função para exibir métricas a cada 60 segundos
+setInterval(() => {
+    console.log('--- Métricas dos Workers ---');
+    for (const [clientId, metrics] of Object.entries(workerMetrics)) {
+        console.log(`Worker ${clientId}: ${metrics.speed} chaves/s`);
+    }
+    console.log('-----------------------------');
+}, 60000);
 
 const server = net.createServer((socket) => {
     console.log('Cliente conectado!');
@@ -27,9 +39,9 @@ const server = net.createServer((socket) => {
                 }
             });
         } else if (message.startsWith('speed:')) {
-            // Exibir velocidade do trabalhador
+            // Atualizar velocidade do trabalhador
             const speed = message.substring(6);
-            console.log(`Velocidade do trabalhador ${clientId}: ${speed} chaves/s`);
+            workerMetrics[clientId] = { speed };
         }
     });
 
@@ -39,6 +51,7 @@ const server = net.createServer((socket) => {
 
     socket.on('end', () => {
         console.log(`Cliente ${clientId} desconectado`);
+        delete workerMetrics[clientId]; // Remover métricas do worker desconectado
     });
 });
 
