@@ -1,7 +1,8 @@
-﻿import { Worker } from 'worker_threads';
+import { Worker } from 'worker_threads';
 import ranges from './ranges.js';
 import readline from 'readline';
 import chalk from 'chalk';
+import os from 'os';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -76,8 +77,8 @@ const main = async () => {
             break;
     }
 
-    // Dividir o intervalo de chaves para os trabalhadores
-    const numWorkers = 8;  // Ajustar com base no número de núcleos da CPU
+    const totalCPUs = os.cpus().length;
+    const numWorkers = totalCPUs > 1 ? Math.ceil(totalCPUs / 2) : 1; // Usar a metade dos núcleos da CPU ou 1 se houver apenas 1 núcleo
     const rangeSize = (max - min) / BigInt(numWorkers);
     let workers = [];
     let promises = [];
