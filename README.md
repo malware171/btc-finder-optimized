@@ -13,10 +13,6 @@ cd otimized
 ```
 sudo apt update && sudo apt upgrade 
 ```
-- Dentro da pasta do btc-find instalar todas as dependencias
-```
-npm install
-```
 
 ### Passo 3: Configurar Node.js
 #### Certifique-se de que a versão do Node.js instalada seja 16 ou superior:
