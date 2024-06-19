@@ -15,6 +15,7 @@ let startTime = Date.now();
 let buffer = Buffer.alloc(0); // Buffer para acumular dados em memória
 const maxBufferLength = 1024 * 1024; // Tamanho máximo do buffer antes de escrever no disco
 const filePath = 'keys.txt';
+let keysChecked = 0;
 
 parentPort.on('message', (message) => {
     if (message === 'stop') {
@@ -40,7 +41,6 @@ async function connectToServer() {
 // Função principal que realiza a busca de bitcoins
 async function encontrarBitcoins(min, max) {
     let key = min;
-    let keysChecked = 0;
 
     console.log(`Worker iniciado com intervalo: ${min.toString(16)} - ${max.toString(16)}`);
 
@@ -60,20 +60,24 @@ async function encontrarBitcoins(min, max) {
         const publicKey = generatePublic(pkey);
 
         if (walletsSet.has(publicKey)) {
-            const lineToAppend = `Private key: ${pkey}, WIF: ${generateWIF(pkey)}\n`;
-            buffer = Buffer.concat([buffer, Buffer.from(lineToAppend)]);
+            const lineToAppend = `Private key: ${pkey}, WIF: ${generateWIF(pkey)}`;
+            buffer = Buffer.concat([buffer, Buffer.from(lineToAppend + '\n')]);
 
             if (buffer.length >= maxBufferLength) {
                 await writeFileAsync(); // Escreve o buffer no disco quando atinge o tamanho máximo
             }
 
             console.log(`Chave encontrada! Private key: ${pkey}, WIF: ${generateWIF(pkey)}`);
-            parentPort.postMessage('found');
+            client.write(`result:${lineToAppend}`);
             throw 'ACHEI!!!! 🎉🎉🎉🎉🎉'; // Lança uma exceção para parar o worker
         }
 
         if (keysChecked % 1000 === 0) {
-            console.log(`Chaves verificadas: ${keysChecked}, última chave: ${pkey}`);
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const speed = (keysChecked / elapsedTime).toFixed(2);
+            console.log(`Chaves verificadas: ${keysChecked}, última chave: ${pkey}, velocidade: ${speed} chaves/s`);
+            client.write(`speed:${speed}`);
+
             await writeFileAsync('Ultima_chave.txt', `Ultima chave tentada: ${pkey}`);
         }
 
