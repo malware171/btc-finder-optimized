@@ -5,7 +5,7 @@
 ### Passo 1: Clonar o Repositório
 
 ```
-git clone https://github.com/malware171/otimized.git
+git clone https://github.com/malware171/btc-finder-optimized.git
 cd otimized
 ```
 ### Passo 2: Instalar Dependências
